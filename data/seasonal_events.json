@@ -1,0 +1,67 @@
+[
+  {
+    "name": "International Women's Day",
+    "month": 3,
+    "day": 8,
+    "window_days": 14,
+    "themes": ["leadership", "equity", "empowerment", "diversity"],
+    "prompt_cues": [
+      "symbolic empowerment energy, elegant abstract leadership concept, commercial stock aesthetic",
+      "equity and progress concept, clean modern abstract celebration theme, premium stock composition"
+    ],
+    "keywords": ["business", "leadership", "empowerment", "abstract", "technology"],
+    "stock_angles": ["editorial-safe business concept", "celebration without text", "modern empowerment background"]
+  },
+  {
+    "name": "International Day of Happiness",
+    "month": 3,
+    "day": 20,
+    "window_days": 18,
+    "themes": ["wellbeing", "positivity", "balance", "mindfulness"],
+    "prompt_cues": [
+      "uplifting glow, calm positive energy, minimal premium background, commercial safe",
+      "wellbeing concept with soft luminous gradients, clean abstract optimism visual"
+    ],
+    "keywords": ["wellness", "mindfulness", "abstract", "background", "spiritual"],
+    "stock_angles": ["wellbeing campaign asset", "mental health theme", "optimistic brand background"]
+  },
+  {
+    "name": "World Water Day",
+    "month": 3,
+    "day": 22,
+    "window_days": 21,
+    "themes": ["water", "sustainability", "purity", "planet care"],
+    "prompt_cues": [
+      "liquid clarity concept, clean sustainability mood, premium commercial stock background",
+      "water preservation symbolism, elegant eco technology fusion, minimal high-value stock style"
+    ],
+    "keywords": ["water", "sustainability", "eco", "technology", "abstract"],
+    "stock_angles": ["environment campaign visual", "eco innovation concept", "clean water awareness background"]
+  },
+  {
+    "name": "World Health Day",
+    "month": 4,
+    "day": 7,
+    "window_days": 21,
+    "themes": ["health", "care", "wellness", "prevention"],
+    "prompt_cues": [
+      "health technology concept, clean luminous protection symbol, premium stock quality",
+      "wellness and care theme, minimal futuristic healing energy, commercial-safe composition"
+    ],
+    "keywords": ["health", "medical", "wellness", "technology", "abstract"],
+    "stock_angles": ["health campaign asset", "medical innovation concept", "wellness landing page background"]
+  },
+  {
+    "name": "Earth Day",
+    "month": 4,
+    "day": 22,
+    "window_days": 28,
+    "themes": ["earth", "climate", "green innovation", "sustainability"],
+    "prompt_cues": [
+      "planet-friendly innovation theme, clean eco technology glow, premium stock composition",
+      "earth care symbolism, sustainable future concept, minimal abstract business background"
+    ],
+    "keywords": ["earth", "eco", "sustainability", "technology", "background"],
+    "stock_angles": ["climate communication visual", "green innovation brand asset", "sustainability presentation background"]
+  }
+]

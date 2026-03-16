@@ -1,0 +1,92 @@
+[
+  {
+    "id": 1,
+    "title": "crystal data core",
+    "prompt": "a single floating crystal core emitting soft cyan light threads, subtle energy rings around it, dark gradient background, minimal futuristic technology concept, cinematic lighting, ultra detailed, 8k",
+    "niche": "abstract futuristic technology background",
+    "composition": "single object center",
+    "color_palette": "cyan blue",
+    "complexity": "low"
+  },
+  {
+    "id": 2,
+    "title": "digital lotus energy",
+    "prompt": "translucent glowing lotus flower made of glass petals, soft violet and cyan inner light, resting on reflective dark surface, minimal mystical technology concept, cinematic lighting, ultra detailed",
+    "niche": "spiritual technology abstract",
+    "composition": "single object center",
+    "color_palette": "violet cyan",
+    "complexity": "low"
+  },
+  {
+    "id": 3,
+    "title": "quantum sphere halo",
+    "prompt": "minimal floating sphere with soft glowing halo rings expanding outward, dark clean background, elegant futuristic technology symbol, cinematic lighting, ultra detailed",
+    "niche": "technology abstract background",
+    "composition": "single object center",
+    "color_palette": "blue cyan",
+    "complexity": "low"
+  },
+  {
+    "id": 4,
+    "title": "crystal insight prism",
+    "prompt": "transparent floating prism crystal with internal light reflections, subtle glowing particles around, dark gradient background, minimal futuristic concept art, cinematic lighting",
+    "niche": "abstract technology concept",
+    "composition": "single object center",
+    "color_palette": "cyan violet",
+    "complexity": "low"
+  },
+  {
+    "id": 5,
+    "title": "energy monolith symbol",
+    "prompt": "smooth stone monolith with soft glowing circular energy ring hovering above it, subtle mist atmosphere, dark minimal background, mystical futuristic symbolism, cinematic lighting",
+    "niche": "mystical tech abstract",
+    "composition": "single object center",
+    "color_palette": "blue silver",
+    "complexity": "low"
+  },
+  {
+    "id": 6,
+    "title": "digital horizon grid",
+    "prompt": "glowing digital grid horizon made of tiny light nodes fading into distance, deep blue gradient background, futuristic data landscape concept, minimal tech style, cinematic lighting",
+    "niche": "technology background",
+    "composition": "landscape horizon",
+    "color_palette": "blue cyan",
+    "complexity": "low"
+  },
+  {
+    "id": 7,
+    "title": "light seed intelligence",
+    "prompt": "small glowing seed-like object with soft internal light veins floating in dark space, minimal futuristic technology symbol, subtle particles drifting around, cinematic lighting",
+    "niche": "abstract digital concept",
+    "composition": "single object center",
+    "color_palette": "cyan silver",
+    "complexity": "low"
+  },
+  {
+    "id": 8,
+    "title": "network lotus bloom",
+    "prompt": "lotus flower formed from thin glowing network lines, floating above dark reflective surface, subtle energy particles around, spiritual technology fusion concept, cinematic lighting",
+    "niche": "spiritual tech abstract",
+    "composition": "single object center",
+    "color_palette": "violet blue",
+    "complexity": "low"
+  },
+  {
+    "id": 9,
+    "title": "holographic cube node",
+    "prompt": "transparent glowing cube floating above minimal dark surface, soft holographic lines moving through edges, futuristic technology concept art, cinematic lighting, ultra clean composition",
+    "niche": "abstract technology object",
+    "composition": "single object center",
+    "color_palette": "cyan blue",
+    "complexity": "low"
+  },
+  {
+    "id": 10,
+    "title": "digital pulse sphere",
+    "prompt": "glowing sphere with subtle concentric pulse waves expanding across reflective surface, dark gradient background, minimal futuristic business technology visual, cinematic lighting",
+    "niche": "technology abstract background",
+    "composition": "single object center",
+    "color_palette": "blue violet",
+    "complexity": "low"
+  }
+]

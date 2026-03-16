@@ -1,0 +1,43 @@
+# Environment
+.env
+.env.*
+*.env
+
+# Go artifacts
+bin/
+obj/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# IDE/project files
+.vscode/
+.idea/
+*.iml
+
+# Node/npm/front-end temporary files
+node_modules/
+dist/
+build/
+FE/_tmp_check.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime artifacts
+storage/
+logs/
+*.log
+coverage/
+*.sqlite
+tmp/
+tmp-*
+
+# System
+.DS_Store
+Thumbs.db

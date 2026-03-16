@@ -1,0 +1,1940 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:," />
+  <title>AI Generator</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap");
+
+    :root {
+      --bg: #06080f;
+      --panel: rgba(11, 16, 32, 0.78);
+      --panel-strong: rgba(7, 13, 28, 0.94);
+      --line: #14203a;
+      --cyan: #00f0ff;
+      --violet: #7a00ff;
+      --ok: #00ff8a;
+      --text: #d5f7ff;
+      --muted: #6e88a8;
+      --glass: rgba(255, 255, 255, 0.04);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 50% -10%, rgba(0, 240, 255, 0.14), transparent 35%),
+        radial-gradient(circle at 20% 5%, rgba(122, 0, 255, 0.18), transparent 35%),
+        radial-gradient(circle at 80% 0%, rgba(0, 240, 255, 0.15), transparent 40%),
+        var(--bg);
+      color: var(--text);
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      height: 100vh;
+      overflow: hidden;
+      padding: 16px;
+    }
+
+	    .wrap {
+	      width: min(1320px, 100%);
+	      height: calc(100vh - 32px);
+	      margin: 0 auto;
+	      display: grid;
+	      gap: 12px;
+	      grid-template-rows: var(--payload-height, 21vh) auto var(--terminal-row, minmax(320px, 1fr));
+	    }
+
+	    .card {
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)),
+        linear-gradient(180deg, rgba(11, 16, 32, 0.92), rgba(8, 12, 24, 0.92));
+      backdrop-filter: blur(14px);
+      border-radius: 18px;
+      box-shadow:
+        0 0 0 1px rgba(0, 240, 255, 0.08) inset,
+        0 18px 40px rgba(0, 0, 0, 0.34),
+        0 0 32px rgba(0, 240, 255, 0.08);
+	      overflow: hidden;
+	    }
+
+	    .payload-card {
+	      position: relative;
+	      display: grid;
+	      grid-template-rows: auto 1fr;
+	      height: 100%;
+	      min-height: 0;
+	      min-height: 118px;
+	      overflow: visible;
+	    }
+
+    .resizer {
+      position: absolute;
+      z-index: 5;
+      background: transparent;
+    }
+
+    .resizer::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity .15s ease;
+      background: rgba(0, 240, 255, 0.08);
+    }
+
+    .payload-card:hover .resizer::after,
+    .resizer.active::after {
+      opacity: 1;
+    }
+
+    .resizer-top,
+    .resizer-bottom {
+      left: 12px;
+      right: 12px;
+      height: 10px;
+      cursor: ns-resize;
+    }
+
+    .resizer-top { top: -5px; }
+    .resizer-bottom { bottom: -5px; }
+
+    .resizer-left,
+    .resizer-right {
+      top: 12px;
+      bottom: 12px;
+      width: 10px;
+      cursor: ew-resize;
+    }
+
+    .resizer-left { left: -5px; }
+    .resizer-right { right: -5px; }
+
+    .resizer-top-left,
+    .resizer-top-right,
+    .resizer-bottom-left,
+    .resizer-bottom-right {
+      width: 14px;
+      height: 14px;
+    }
+
+    .resizer-top-left {
+      top: -6px;
+      left: -6px;
+      cursor: nwse-resize;
+    }
+
+    .resizer-top-right {
+      top: -6px;
+      right: -6px;
+      cursor: nesw-resize;
+    }
+
+    .resizer-bottom-left {
+      bottom: -6px;
+      left: -6px;
+      cursor: nesw-resize;
+    }
+
+    .resizer-bottom-right {
+      bottom: -6px;
+      right: -6px;
+      cursor: nwse-resize;
+    }
+
+    .hdr {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      color: var(--cyan);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      background: rgba(0, 240, 255, 0.03);
+    }
+
+    .hdr-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .payload-shell {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 54px;
+      overflow: hidden;
+      border-radius: 0 0 18px 18px;
+    }
+
+    .payload-summary {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: nowrap;
+      padding: 7px 12px;
+      height: 54px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.08);
+    }
+
+    .payload-summary::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+
+    .summary-chip {
+      position: relative;
+      display: inline-grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(112, 214, 255, 0.35);
+      background:
+        radial-gradient(circle at 18% 14%, rgba(194, 244, 255, 0.16), rgba(194, 244, 255, 0) 48%),
+        linear-gradient(130deg, rgba(17, 46, 76, 0.88), rgba(12, 31, 62, 0.84) 48%, rgba(8, 22, 49, 0.9));
+      color: #d4f7ff;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+      white-space: nowrap;
+      flex: 0 0 auto;
+      cursor: pointer;
+      overflow: hidden;
+      transition: border-color .18s ease, transform .14s ease, box-shadow .2s ease, filter .2s ease, background .2s ease;
+      min-height: 33px;
+      --chip-accent: #63dcff;
+      --chip-wave-a: rgba(64, 220, 255, 0.62);
+      --chip-wave-b: rgba(64, 220, 255, 0.12);
+    }
+
+    .summary-chip::before {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      background:
+        radial-gradient(circle at 22% 40%, var(--chip-wave-a), var(--chip-wave-b) 56%, rgba(0, 0, 0, 0) 72%),
+        linear-gradient(120deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 62%);
+      border-radius: inherit;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      opacity: .52;
+    }
+
+    .summary-chip::after {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0) 34%);
+      pointer-events: none;
+    }
+
+    .chip-icon {
+      position: relative;
+      z-index: 1;
+      width: 18px;
+      height: 18px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      border: 1px solid color-mix(in srgb, var(--chip-accent) 66%, #d3f8ff 34%);
+      background: radial-gradient(circle at 32% 28%, rgba(245, 252, 255, 0.96), color-mix(in srgb, var(--chip-accent) 58%, rgba(255, 255, 255, 0.1) 42%));
+      color: #072337;
+      text-transform: none;
+      box-shadow: 0 0 14px color-mix(in srgb, var(--chip-accent) 36%, transparent);
+    }
+
+    .chip-icon svg {
+      width: 11px;
+      height: 11px;
+      stroke: currentColor;
+      stroke-width: 1.9;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    .chip-body {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 0;
+      line-height: 1.1;
+      text-align: left;
+    }
+
+    .chip-label {
+      color: rgba(197, 237, 255, 0.85);
+    }
+
+    .summary-chip strong {
+      color: #f0fdff;
+      font-size: 10px;
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 700;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .summary-chip:hover {
+      border-color: color-mix(in srgb, var(--chip-accent) 72%, #d5fbff 28%);
+      box-shadow:
+        0 0 14px color-mix(in srgb, var(--chip-accent) 28%, transparent),
+        0 0 24px rgba(122, 0, 255, 0.12);
+      transform: translateY(-1px);
+      filter: saturate(1.04);
+    }
+
+    .chip-prompt { --chip-accent: #59dfff; --chip-wave-a: rgba(78, 222, 255, 0.6); --chip-wave-b: rgba(78, 222, 255, 0.1); }
+    .chip-file { --chip-accent: #3effc5; --chip-wave-a: rgba(62, 255, 197, 0.55); --chip-wave-b: rgba(62, 255, 197, 0.1); }
+    .chip-generate, .chip-seed { --chip-accent: #ffcf71; --chip-wave-a: rgba(255, 207, 113, 0.58); --chip-wave-b: rgba(255, 207, 113, 0.12); }
+    .chip-auto_metadata, .chip-enhance { --chip-accent: #3ff0ae; --chip-wave-a: rgba(63, 240, 174, 0.55); --chip-wave-b: rgba(63, 240, 174, 0.1); }
+    .chip-debug { --chip-accent: #ff7eb2; --chip-wave-a: rgba(255, 126, 178, 0.52); --chip-wave-b: rgba(255, 126, 178, 0.1); }
+    .chip-auto_prompt { --chip-accent: #74efff; --chip-wave-a: rgba(116, 239, 255, 0.54); --chip-wave-b: rgba(116, 239, 255, 0.1); }
+    .chip-strict_single_object { --chip-accent: #b9ff7c; --chip-wave-a: rgba(185, 255, 124, 0.52); --chip-wave-b: rgba(185, 255, 124, 0.1); }
+    .chip-variation_strength { --chip-accent: #ffb86f; --chip-wave-a: rgba(255, 184, 111, 0.54); --chip-wave-b: rgba(255, 184, 111, 0.1); }
+    .chip-aspect_ratio { --chip-accent: #7dc3ff; --chip-wave-a: rgba(125, 195, 255, 0.5); --chip-wave-b: rgba(125, 195, 255, 0.1); }
+    .chip-model_id { --chip-accent: #58d7ff; --chip-wave-a: rgba(88, 215, 255, 0.56); --chip-wave-b: rgba(88, 215, 255, 0.12); }
+    .chip-style_uuid { --chip-accent: #b98cff; --chip-wave-a: rgba(185, 140, 255, 0.56); --chip-wave-b: rgba(185, 140, 255, 0.12); }
+
+	    .payload-panel {
+	      height: 0;
+	      min-height: 0;
+	      font-size: 12px;
+	      overflow: hidden;
+	      scrollbar-width: thin;
+	      scrollbar-color: rgba(0, 240, 255, 0.32) transparent;
+	      position: relative;
+	      z-index: 1;
+	      padding: 0;
+	      display: none;
+	    }
+
+    .hidden {
+      display: none;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      outline: none;
+      resize: none;
+      background: transparent;
+      color: #c7f7ff;
+      font: inherit;
+      padding: 14px;
+      line-height: 1.45;
+    }
+
+    #payload {
+      font-size: 12px;
+      letter-spacing: -0.1px;
+    }
+
+    .btn {
+      width: 100%;
+      border: 1px solid rgba(100, 214, 255, 0.65);
+      background:
+        radial-gradient(circle at 18% 20%, rgba(142, 238, 255, 0.2), rgba(142, 238, 255, 0) 42%),
+        linear-gradient(120deg, rgba(16, 50, 86, 0.9), rgba(11, 31, 67, 0.92) 52%, rgba(12, 23, 53, 0.96));
+      color: #eaffff;
+      font: inherit;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 20px 20px;
+      cursor: pointer;
+      border-radius: 18px;
+      box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.32),
+        0 0 18px rgba(0, 240, 255, 0.22),
+        0 0 20px rgba(0, 240, 255, 0.14) inset;
+      transition: transform .12s ease, filter .2s ease, opacity .2s ease;
+      text-transform: uppercase;
+    }
+
+    .btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      transform: none;
+      filter: saturate(.55);
+    }
+
+	    .terminal {
+	      margin: 0;
+	      padding: 12px 14px;
+	      height: 100%;
+	      min-height: 0;
+	      overflow: auto;
+      color: #9ef6ff;
+      line-height: 1.55;
+      font-size: 13px;
+      background:
+        linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px) 0 0 / 100% 22px,
+        transparent;
+	      white-space: pre-wrap;
+	      word-break: break-word;
+	      scrollbar-width: none;
+	      position: relative;
+	    }
+
+	    .payload-panel {
+	      scrollbar-width: none;
+	    }
+
+	    #payload::-webkit-scrollbar,
+	    .terminal::-webkit-scrollbar,
+	    .modal-body textarea::-webkit-scrollbar {
+	      width: 0;
+	      height: 0;
+	    }
+
+	    .terminal::after {
+	      content: "";
+	      position: sticky;
+	      display: block;
+	      bottom: 0;
+	      height: 18px;
+	      margin-top: -18px;
+	      background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(6, 8, 15, 0.85));
+	      pointer-events: none;
+	    }
+
+	    .terminal-card {
+	      position: relative;
+	      display: grid;
+	      grid-template-rows: auto 1fr;
+	      min-height: 0;
+	      overflow: visible;
+	    }
+
+	    .terminal-shell {
+	      min-height: 0;
+	      display: grid;
+	      grid-template-rows: auto 1fr;
+	      overflow: hidden;
+	      border-radius: 0 0 18px 18px;
+	    }
+
+	    .terminal-progress {
+	      padding: 12px 14px 10px 14px;
+	      display: grid;
+	      gap: 8px;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.08);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+	      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.16);
+	    }
+
+    .terminal-progress.hidden {
+      display: none;
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    .status {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      font-weight: 700;
+    }
+    .status.running { color: var(--cyan); }
+    .status.complete { color: var(--ok); }
+    .status.error { color: #ff6d8b; }
+
+    .payload-tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mini-btn {
+      border: 1px solid rgba(0, 240, 255, 0.18);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font: inherit;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      border-radius: 999px;
+      padding: 7px 11px;
+      cursor: pointer;
+    }
+
+    .mini-btn:hover {
+      color: var(--text);
+      border-color: rgba(0, 240, 255, 0.32);
+    }
+
+    .mini-btn.active {
+      color: #eaffff;
+      border-color: rgba(255, 126, 178, 0.65);
+      background: linear-gradient(120deg, rgba(255, 126, 178, 0.18), rgba(255, 126, 178, 0.08));
+      box-shadow: 0 0 14px rgba(255, 126, 178, 0.24);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(2, 6, 16, 0.7);
+      backdrop-filter: blur(10px);
+      z-index: 20;
+    }
+
+    .modal-backdrop.hidden {
+      display: none;
+    }
+
+    .modal-card {
+      width: min(640px, 100%);
+      border-radius: 18px;
+      border: 1px solid rgba(0, 240, 255, 0.18);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02)),
+        linear-gradient(180deg, rgba(10, 16, 30, 0.96), rgba(6, 11, 22, 0.96));
+      box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.42),
+        0 0 30px rgba(0, 240, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+    }
+
+    .modal-body label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .modal-body input,
+    .modal-body select,
+    .modal-body textarea {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid rgba(0, 240, 255, 0.16);
+      border-radius: 12px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
+        var(--panel-strong);
+      color: var(--text);
+      font: inherit;
+      padding: 12px 13px;
+      outline: none;
+    }
+
+	    .modal-body textarea {
+	      min-height: 120px;
+	      resize: vertical;
+	      scrollbar-width: none;
+	    }
+
+	    .tag-editor {
+	      display: grid;
+	      gap: 10px;
+	    }
+
+	    .tag-list {
+	      display: flex;
+	      flex-wrap: wrap;
+	      gap: 8px;
+	      padding: 10px;
+	      border-radius: 14px;
+	      border: 1px solid rgba(0, 240, 255, 0.14);
+	      background: rgba(255, 255, 255, 0.02);
+	      min-height: 64px;
+	      align-content: flex-start;
+	    }
+
+	    .tag-pill {
+	      display: inline-flex;
+	      align-items: center;
+	      gap: 8px;
+	      border-radius: 999px;
+	      border: 1px solid rgba(0, 240, 255, 0.22);
+	      background: linear-gradient(180deg, rgba(0, 240, 255, 0.06), rgba(122, 0, 255, 0.05));
+	      color: #c9fbff;
+	      font: inherit;
+	      font-size: 12px;
+	      padding: 8px 10px;
+	      cursor: pointer;
+	      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+	      max-width: 100%;
+	    }
+
+	    .tag-pill span {
+	      display: inline-block;
+	      overflow: hidden;
+	      text-overflow: ellipsis;
+	      white-space: nowrap;
+	      max-width: 420px;
+	    }
+
+	    .tag-x {
+	      width: 18px;
+	      height: 18px;
+	      border-radius: 999px;
+	      display: grid;
+	      place-items: center;
+	      border: 1px solid rgba(255, 255, 255, 0.08);
+	      color: rgba(255, 255, 255, 0.75);
+	      background: rgba(0, 0, 0, 0.18);
+	    }
+
+	    .tag-add {
+	      display: grid;
+	      grid-template-columns: 1fr auto;
+	      gap: 10px;
+	      align-items: center;
+	    }
+
+	    .tag-add button {
+	      height: 44px;
+	      border-radius: 12px;
+	      border: 1px solid rgba(0, 240, 255, 0.22);
+	      background: rgba(255, 255, 255, 0.035);
+	      color: var(--text);
+	      font: inherit;
+	      font-size: 12px;
+	      font-weight: 700;
+	      padding: 0 14px;
+	      cursor: pointer;
+	      text-transform: uppercase;
+	      letter-spacing: 0.8px;
+	    }
+
+	    .tag-hint {
+	      color: var(--muted);
+	      font-size: 11px;
+	    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 0 16px 16px 16px;
+    }
+
+    .modal-btn {
+      border: 1px solid rgba(0, 240, 255, 0.16);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.035);
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 10px 14px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .modal-btn.primary {
+      border-color: rgba(0, 240, 255, 0.45);
+      background: linear-gradient(90deg, rgba(0, 240, 255, 0.16), rgba(122, 0, 255, 0.16));
+    }
+
+    .terminal-empty {
+      color: var(--muted);
+      opacity: 0.9;
+    }
+
+    .bar {
+      position: relative;
+      width: 100%;
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(11, 18, 34, 0.9);
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      overflow: hidden;
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.14) inset;
+    }
+
+    .fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0%;
+      background:
+        linear-gradient(90deg, #00f0ff 0%, #4e9bff 45%, #7a00ff 100%);
+      box-shadow:
+        0 0 16px rgba(0, 240, 255, 0.9),
+        0 0 30px rgba(122, 0, 255, 0.45);
+      transition: width .45s cubic-bezier(.2, .8, .2, 1), filter .3s ease;
+    }
+
+    .fill::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.22) 0 10px,
+        rgba(255, 255, 255, 0.06) 10px 20px
+      );
+      animation: scan 1.2s linear infinite;
+      mix-blend-mode: screen;
+    }
+
+    .fill.complete {
+      background: linear-gradient(90deg, #00b86a 0%, #00ff8a 100%);
+      box-shadow: 0 0 16px rgba(0, 255, 138, 0.9), 0 0 30px rgba(0, 255, 138, 0.45);
+    }
+
+    .percent {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: #e8feff;
+      text-shadow: 0 0 8px rgba(0, 0, 0, .8);
+      pointer-events: none;
+    }
+
+    @keyframes scan {
+      from { transform: translateX(-28px); }
+      to { transform: translateX(0); }
+    }
+
+    @media (max-width: 900px) {
+      body {
+        height: auto;
+        overflow: auto;
+        padding: 14px;
+      }
+
+      .wrap {
+        height: auto;
+        grid-template-rows: none;
+      }
+
+      textarea {
+        min-height: 220px;
+      }
+
+      .terminal {
+        min-height: 280px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section id="payloadCard" class="card payload-card">
+      <div class="resizer resizer-top" data-resize="top"></div>
+      <div class="resizer resizer-right" data-resize="right"></div>
+      <div class="resizer resizer-bottom" data-resize="bottom"></div>
+      <div class="resizer resizer-left" data-resize="left"></div>
+      <div class="resizer resizer-top-left" data-resize="top-left"></div>
+      <div class="resizer resizer-top-right" data-resize="top-right"></div>
+      <div class="resizer resizer-bottom-left" data-resize="bottom-left"></div>
+      <div class="resizer resizer-bottom-right" data-resize="bottom-right"></div>
+      <div class="hdr hdr-row">
+        <span>Payload Config</span>
+        <div class="payload-tools">
+          <button id="importPromptsBtn" class="mini-btn" type="button">Import Prompts</button>
+          <button id="shufflePromptsBtn" class="mini-btn" type="button">Shuffle Prompts</button>
+          <button id="debugToggleBtn" class="mini-btn" type="button">Debug Off</button>
+        </div>
+      </div>
+      <div class="payload-shell">
+        <div id="payloadSummary" class="payload-summary"></div>
+	        <textarea id="payload" class="payload-panel">{
+	  "prompt": [],
+	  "file": "image",
+	  "auto_metadata": true,
+	  "enhance": true,
+	  "generate": 5,
+	  "debug": true,
+	  "auto_prompt": false,
+	  "strict_single_object": false,
+	  "variation_strength": "medium",
+	  "aspect_ratio": "16:9",
+	  "model_id": "2067ae52-33fd-4a82-bb92-c2c55e7d2786",
+	  "style_uuid": "111dc692-d470-4eec-b791-3475abac4c46",
+	  "seed": 12345
+	}</textarea>
+	      </div>
+	    </section>
+
+    <button id="generateBtn" class="btn" type="button">Generate</button>
+
+	    <section id="terminalCard" class="card terminal-card">
+	      <div class="resizer resizer-top" data-panel="terminal" data-resize="top"></div>
+	      <div class="resizer resizer-right" data-panel="terminal" data-resize="right"></div>
+	      <div class="resizer resizer-bottom" data-panel="terminal" data-resize="bottom"></div>
+	      <div class="resizer resizer-left" data-panel="terminal" data-resize="left"></div>
+	      <div class="resizer resizer-top-left" data-panel="terminal" data-resize="top-left"></div>
+	      <div class="resizer resizer-top-right" data-panel="terminal" data-resize="top-right"></div>
+	      <div class="resizer resizer-bottom-left" data-panel="terminal" data-resize="bottom-left"></div>
+	      <div class="resizer resizer-bottom-right" data-panel="terminal" data-resize="bottom-right"></div>
+	      <div class="hdr">Terminal Output</div>
+	      <div class="terminal-shell">
+	        <div id="terminalProgress" class="terminal-progress hidden">
+	          <div class="progress-meta">
+	            <div id="progressText">Stage: idle</div>
+	            <div id="statusText" class="status">Idle</div>
+	          </div>
+	          <div class="bar">
+	            <div id="progressFill" class="fill"></div>
+	            <div id="percentText" class="percent">0%</div>
+	          </div>
+	        </div>
+	        <div id="terminal" class="terminal"></div>
+	      </div>
+	    </section>
+  </main>
+
+  <div id="editModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <span id="modalTitle">Edit Value</span>
+        <button id="modalCloseBtn" class="modal-close" type="button">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label id="modalLabel" for="modalInput">Value</label>
+        <div id="modalInputWrap"></div>
+      </div>
+      <div class="modal-actions">
+        <button id="modalCancelBtn" class="modal-btn" type="button">Cancel</button>
+        <button id="modalSaveBtn" class="modal-btn primary" type="button">Apply</button>
+      </div>
+    </div>
+  </div>
+
+	  <script>
+	    const terminal = document.getElementById("terminal");
+	    const payloadEl = document.getElementById("payload");
+	    const wrap = document.querySelector(".wrap");
+	    const payloadCard = document.getElementById("payloadCard");
+	    const terminalCard = document.getElementById("terminalCard");
+	    const payloadSummary = document.getElementById("payloadSummary");
+	    const btn = document.getElementById("generateBtn");
+	    const editModal = document.getElementById("editModal");
+	    const modalTitle = document.getElementById("modalTitle");
+	    const modalLabel = document.getElementById("modalLabel");
+	    const modalInputWrap = document.getElementById("modalInputWrap");
+	    const modalCloseBtn = document.getElementById("modalCloseBtn");
+	    const modalCancelBtn = document.getElementById("modalCancelBtn");
+	    const modalSaveBtn = document.getElementById("modalSaveBtn");
+	    const importPromptsBtn = document.getElementById("importPromptsBtn");
+	    const shufflePromptsBtn = document.getElementById("shufflePromptsBtn");
+	    const debugToggleBtn = document.getElementById("debugToggleBtn");
+	    const terminalProgress = document.getElementById("terminalProgress");
+	    const progressFill = document.getElementById("progressFill");
+    const percentText = document.getElementById("percentText");
+    const progressText = document.getElementById("progressText");
+    const statusText = document.getElementById("statusText");
+
+    let stream = null;
+    let streamReconnectTimer = null;
+    let runFinished = false;
+    let runStarted = false;
+    let downloadTriggered = false;
+    let requestedTotal = 0;
+    let completedFromLogs = 0;
+    let pollTicks = 0;
+	    let enhanceDone = 0;
+	    let stageLabel = "idle";
+	    let terminalBuffer = "";
+	    let apiInitPromise = null;
+	    let activeModalKey = "";
+	    let streamMode = "";
+	    const STORAGE_KEYS = {
+	      terminal: "ai_generator_terminal_buffer",
+	      running: "ai_generator_run_started",
+	      finished: "ai_generator_run_finished",
+	      busy: "ai_generator_busy",
+	    };
+	    const API_CANDIDATES = location.protocol === "file:"
+	      ? ["http://localhost:8080", "http://127.0.0.1:8080"]
+	      : [location.origin, "http://localhost:8080", "http://127.0.0.1:8080"];
+	    let API_BASE = "";
+	    let resizeState = null;
+	    let modalState = { items: [] };
+
+	    function appendLog(message) {
+	      const text = (message ?? "").toString();
+	      terminalBuffer += text.endsWith("\n") ? text : `${text}\n`;
+	      terminal.textContent = terminalBuffer;
+	      terminal.scrollTop = terminal.scrollHeight;
+	      sessionStorage.setItem(STORAGE_KEYS.terminal, terminalBuffer);
+	    }
+
+	    function setTerminalIdleMessage() {
+	      terminal.innerHTML = `<span class="terminal-empty">console ready. click GENERATE to start.</span>`;
+	      terminalBuffer = "";
+	      sessionStorage.removeItem(STORAGE_KEYS.terminal);
+	    }
+
+	    function persistRunState() {
+	      sessionStorage.setItem(STORAGE_KEYS.running, String(runStarted));
+	      sessionStorage.setItem(STORAGE_KEYS.finished, String(runFinished));
+	      sessionStorage.setItem(STORAGE_KEYS.busy, String(!terminalProgress.classList.contains("hidden")));
+	    }
+
+	    function restoreTerminalState() {
+	      const savedTerminal = sessionStorage.getItem(STORAGE_KEYS.terminal) || "";
+	      runStarted = sessionStorage.getItem(STORAGE_KEYS.running) === "true";
+	      runFinished = sessionStorage.getItem(STORAGE_KEYS.finished) === "true";
+	      const busy = sessionStorage.getItem(STORAGE_KEYS.busy) === "true";
+
+	      if (savedTerminal) {
+	        terminalBuffer = savedTerminal;
+	        terminal.textContent = terminalBuffer;
+	        terminal.scrollTop = terminal.scrollHeight;
+	      } else {
+	        setTerminalIdleMessage();
+	      }
+
+	      setBusyUI(busy && runStarted && !runFinished);
+	    }
+
+	    function clamp(num, min, max) {
+	      return Math.max(min, Math.min(max, num));
+	    }
+
+	    function getLayoutMetrics() {
+	      const wrapRect = wrap.getBoundingClientRect();
+	      const payloadRect = payloadCard.getBoundingClientRect();
+	      const btnRect = btn.getBoundingClientRect();
+	      const gap = parseInt(getComputedStyle(wrap).rowGap, 10) || 12;
+	      const available = wrapRect.height;
+	      return {
+	        available,
+	        payloadHeight: payloadRect.height,
+	        btnHeight: btnRect.height,
+	        gap,
+	      };
+	    }
+
+	    function applyTerminalRow(height) {
+	      const metrics = getLayoutMetrics();
+	      const payloadMin = 118;
+	      const terminalMin = 320;
+	      const fixedGaps = metrics.gap * 2;
+	      const maxHeight = Math.max(terminalMin, metrics.available - payloadMin - metrics.btnHeight - fixedGaps);
+	      const next = clamp(Math.round(height), terminalMin, maxHeight);
+	      document.documentElement.style.setProperty("--terminal-row", `${next}px`);
+	    }
+
+	    function applyPayloadSize(height) {
+	      const metrics = getLayoutMetrics();
+	      const minHeight = 118;
+	      const terminalMin = 320;
+	      const fixedGaps = metrics.gap * 2;
+	      const maxHeight = Math.max(220, metrics.available - metrics.btnHeight - fixedGaps - terminalMin);
+	      const nextHeight = clamp(Math.round(height), minHeight, maxHeight);
+	      document.documentElement.style.setProperty("--payload-height", `${nextHeight}px`);
+
+	      // Keep terminal row clamped when payload changes.
+	      const terminalRect = terminalCard.getBoundingClientRect();
+	      applyTerminalRow(terminalRect.height);
+	    }
+
+	    function startResize(event, panel, direction) {
+	      event.preventDefault();
+	      const target = panel === "terminal" ? terminalCard : payloadCard;
+	      const rect = target.getBoundingClientRect();
+	      resizeState = {
+	        panel,
+	        direction,
+	        startX: event.clientX,
+	        startY: event.clientY,
+	        startHeight: rect.height,
+	        handle: event.currentTarget,
+	      };
+	      event.currentTarget.classList.add("active");
+	      document.body.style.userSelect = "none";
+	      document.body.style.cursor = getComputedStyle(event.currentTarget).cursor;
+	    }
+
+	    function onResizeMove(event) {
+	      if (!resizeState) return;
+	      const dy = event.clientY - resizeState.startY;
+	      const direction = resizeState.direction;
+	      let nextHeight = resizeState.startHeight;
+
+	      if (direction.includes("bottom")) {
+	        nextHeight = resizeState.startHeight + dy;
+	      } else if (direction.includes("top")) {
+	        nextHeight = resizeState.startHeight - dy;
+	      } else {
+	        nextHeight = resizeState.startHeight + dy;
+	      }
+
+	      if (resizeState.panel === "terminal") {
+	        applyTerminalRow(nextHeight);
+	      } else {
+	        applyPayloadSize(nextHeight);
+	      }
+	    }
+
+	    function stopResize() {
+	      if (!resizeState) return;
+	      resizeState.handle.classList.remove("active");
+	      resizeState = null;
+	      document.body.style.userSelect = "";
+	      document.body.style.cursor = "";
+	    }
+
+	    const MODEL_PRESETS = [
+	      { label: "Concept Art (AlbedoBase XL)", value: "2067ae52-33fd-4a82-bb92-c2c55e7d2786" },
+	      { label: "Neon Product Hero", value: "2067ae52-33fd-4a82-bb92-c2c55e7d2786" },
+	      { label: "Stock Banner Pro", value: "2067ae52-33fd-4a82-bb92-c2c55e7d2786" },
+	    ];
+
+	    const STYLE_PRESETS = [
+	      { label: "Cinematic Concept", value: "111dc692-d470-4eec-b791-3475abac4c46" },
+	      { label: "Model Default (No Style UUID)", value: "" },
+	      { label: "Cinematic Concept Plus", value: "111dc692-d470-4eec-b791-3475abac4c46" },
+	    ];
+
+	    function getPresetLabelByValue(presets, value, fallbackLabel) {
+	      const v = String(value ?? "");
+	      const found = presets.find((item) => String(item.value) === v);
+	      if (found) return found.label;
+	      if (v.trim() === "") return fallbackLabel;
+	      return "Custom";
+	    }
+
+	    const chipConfigs = {
+	      prompt: { label: "Prompt", type: "prompt_array", path: "prompt" },
+	      file: {
+	        label: "File Type",
+	        type: "select",
+	        path: "file",
+	        options: [
+	          { label: "Image", value: "image" },
+	          { label: "Video", value: "video" },
+	          { label: "Vector", value: "vector" },
+	        ],
+	      },
+	      generate: { label: "Generate", type: "number", path: "generate", min: 1, max: 500 },
+	      auto_metadata: { label: "Auto Metadata", type: "boolean", path: "auto_metadata" },
+	      enhance: { label: "Enhance", type: "boolean", path: "enhance" },
+	      auto_prompt: { label: "Auto Prompt", type: "boolean", path: "auto_prompt" },
+	      strict_single_object: { label: "Strict Single Object", type: "boolean", path: "strict_single_object" },
+	      variation_strength: {
+	        label: "Variation",
+	        type: "select",
+	        path: "variation_strength",
+	        options: [
+	          { label: "Low", value: "low" },
+	          { label: "Medium", value: "medium" },
+	          { label: "High", value: "high" },
+	        ],
+	      },
+	      aspect_ratio: {
+	        label: "Aspect",
+	        type: "select",
+	        path: "aspect_ratio",
+	        options: [
+	          { label: "16:9", value: "16:9" },
+	          { label: "1:1", value: "1:1" },
+	          { label: "4:5", value: "4:5" },
+	          { label: "9:16", value: "9:16" },
+	          { label: "3:2", value: "3:2" },
+	        ],
+	      },
+	      model_id: { label: "Model", type: "select", path: "model_id", options: MODEL_PRESETS },
+	      style_uuid: { label: "Style", type: "select", path: "style_uuid", options: STYLE_PRESETS },
+	      seed: { label: "Seed", type: "number", path: "seed", min: 0, max: 2147483647 },
+	    };
+
+	    function getPayloadValue(payload, path) {
+	      return payload?.[path];
+	    }
+
+	    function setPayloadValue(payload, path, value) {
+	      payload[path] = value;
+	    }
+
+	    function parsePromptArrayInput(raw) {
+	      const text = String(raw || "").trim();
+	      if (!text) return [];
+	      if (text.startsWith("[")) {
+	        try {
+	          const arr = JSON.parse(text);
+	          if (!Array.isArray(arr)) return [];
+	          return normalizePromptArray(arr);
+	        } catch (_) {
+	          return [];
+	        }
+	      }
+	      return normalizePromptArray(text.split(/\r?\n/g));
+	    }
+
+	    function normalizePromptArray(values) {
+	      const seen = new Set();
+	      const out = [];
+	      for (const value of Array.isArray(values) ? values : []) {
+	        const v = String(value || "").trim();
+	        if (!v) continue;
+	        const key = v.toLowerCase();
+	        if (seen.has(key)) continue;
+	        seen.add(key);
+	        out.push(v);
+	        if (out.length >= 10) break;
+	      }
+	      return out;
+	    }
+
+	    function shufflePromptArray(values) {
+	      const arr = normalizePromptArray(values).slice();
+	      for (let i = arr.length - 1; i > 0; i--) {
+	        const j = Math.floor(Math.random() * (i + 1));
+	        const tmp = arr[i];
+	        arr[i] = arr[j];
+	        arr[j] = tmp;
+	      }
+	      return arr;
+	    }
+
+	    function applyPayloadRules(payload) {
+	      if (!payload || typeof payload !== "object") return payload;
+	      payload.prompt = normalizePromptArray(payload.prompt);
+
+	      if (payload.debug) {
+	        payload.generate = 1;
+	        payload.auto_metadata = false;
+	        payload.strict_single_object = false;
+	      }
+
+	      if (payload.auto_prompt) {
+	        // Backend still requires non-empty prompt as niche seed.
+	        payload.prompt = ["popular monthly adobe stock niche, suggest best commercial prompt for this month"];
+	      }
+	      return payload;
+	    }
+
+	    function updateDebugButtonState(payload) {
+	      const enabled = Boolean(payload && payload.debug);
+	      debugToggleBtn.textContent = enabled ? "Debug On" : "Debug Off";
+	      debugToggleBtn.classList.toggle("active", enabled);
+	    }
+
+	    function chipIconSVG(key, safePayload) {
+	      const fileType = String(safePayload?.file || "image").toLowerCase();
+	      if (key === "file") {
+	        if (fileType === "video") {
+	          return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="12.5" height="13" rx="2"></rect><path d="M16 10l4.5-2.5v9L16 14z"></path></svg>';
+	        }
+	        if (fileType === "vector") {
+	          return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="18" cy="6" r="2"></circle><circle cx="12" cy="18" r="2"></circle><path d="M7.8 7.2l2.9 8M16.2 7.2l-2.9 8M8 6h8"></path></svg>';
+	        }
+	        return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2"></rect><circle cx="9" cy="10" r="1.5"></circle><path d="M4.5 16l5-4 3 2.5 3-3 4 4.5"></path></svg>';
+	      }
+	      const icons = {
+	        prompt: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14M5 12h10M5 16.5h8"></path></svg>',
+	        model_id: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.6v8.8L12 21l-8-4.6V7.6L12 3z"></path><path d="M12 3v8.9M20 7.6l-8 4.3-8-4.3"></path></svg>',
+	        style_uuid: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.2 4.8L19 10l-4.8 2.2L12 17l-2.2-4.8L5 10l4.8-2.2z"></path></svg>',
+	        aspect_ratio: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="12" rx="1.8"></rect><path d="M8 10h8M8 14h5"></path></svg>',
+	        generate: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 12h10M12 7v10"></path><circle cx="12" cy="12" r="8.5"></circle></svg>',
+	        seed: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+	        auto_metadata: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h7l4 4V19.5H7z"></path><path d="M14 4.5v4h4M9 13h6M9 16h4"></path></svg>',
+	        enhance: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l1.8 4.2L18 10l-4.2 1.8L12 16l-1.8-4.2L6 10l4.2-1.8z"></path></svg>',
+	        debug: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7h6M8 11h8M9.5 15h5"></path><rect x="6" y="4.5" width="12" height="15" rx="2"></rect></svg>',
+	        auto_prompt: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.5 3.5L17 8l-3.5 1.5L12 13l-1.5-3.5L7 8l3.5-1.5z"></path><path d="M6 16h12M8.5 20h7"></path></svg>',
+	        strict_single_object: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle><circle cx="12" cy="12" r="2.5"></circle></svg>',
+	        variation_strength: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15c2-2.5 4-2.5 6 0s4 2.5 6 0 4-2.5 4 0"></path><path d="M4 9c2-2.5 4-2.5 6 0s4 2.5 6 0 4-2.5 4 0"></path></svg>',
+	      };
+	      return icons[key] || '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle></svg>';
+	    }
+
+	    function renderPayloadSummary(payload) {
+	      const safePayload = applyPayloadRules(payload && typeof payload === "object" ? payload : {});
+	      const promptArr = normalizePromptArray(safePayload.prompt);
+	      const promptPreview = promptArr.length > 0 ? `${promptArr.length} prompts` : "empty";
+	      const chips = [
+	        { key: "prompt", label: "Prompt", value: promptPreview },
+	        { key: "file", label: "File", value: String(safePayload.file || "image") },
+	        { key: "generate", label: "Generate", value: safePayload.generate || 0 },
+	        { key: "auto_metadata", label: "Metadata", value: safePayload.auto_metadata ? "on" : "off" },
+	        { key: "enhance", label: "Enhance", value: safePayload.enhance ? "on" : "off" },
+	        { key: "auto_prompt", label: "Auto Prompt", value: safePayload.auto_prompt ? "on" : "off" },
+	        { key: "strict_single_object", label: "Strict Object", value: safePayload.strict_single_object ? "on" : "off" },
+	        { key: "variation_strength", label: "Variation", value: String(safePayload.variation_strength || "medium") },
+	        { key: "aspect_ratio", label: "Aspect", value: safePayload.aspect_ratio || "16:9" },
+	        { key: "model_id", label: "Model", value: getPresetLabelByValue(MODEL_PRESETS, safePayload.model_id, "default") },
+	        { key: "style_uuid", label: "Style", value: getPresetLabelByValue(STYLE_PRESETS, safePayload.style_uuid, "default") },
+	        { key: "seed", label: "Seed", value: Number.isFinite(Number(safePayload.seed)) ? Number(safePayload.seed) : 0 },
+	      ];
+	      const visibleChips = chips.filter((chip) => {
+	        if (safePayload.auto_prompt && chip.key === "prompt") return false;
+	        if (safePayload.debug && (chip.key === "generate" || chip.key === "auto_metadata" || chip.key === "strict_single_object")) return false;
+	        return true;
+	      });
+	      payloadSummary.innerHTML = visibleChips
+	        .map((chip) => `
+	          <button class="summary-chip chip-${chip.key}" type="button" data-chip="${chip.key}">
+	            <span class="chip-icon">${chipIconSVG(chip.key, safePayload)}</span>
+	            <span class="chip-body">
+	              <span class="chip-label">${chip.label}</span>
+	              <strong>${chip.value}</strong>
+	            </span>
+	          </button>
+	        `)
+	        .join("");
+	      if (!safePayload.auto_prompt && promptArr.length > 0) {
+	        const promptBubbles = promptArr.map((p, i) => `
+	          <button class="summary-chip chip-prompt" type="button" data-chip="prompt" title="${p.replace(/"/g, "&quot;")}">
+	            <span class="chip-icon">${chipIconSVG("prompt", safePayload)}</span>
+	            <span class="chip-body">
+	              <span class="chip-label">P${i + 1}</span>
+	              <strong>${p}</strong>
+	            </span>
+	          </button>
+	        `).join("");
+	        payloadSummary.insertAdjacentHTML("beforeend", promptBubbles);
+	      }
+
+	      updateDebugButtonState(safePayload);
+	      payloadEl.value = JSON.stringify(safePayload, null, 2);
+	    }
+
+	    function closeModal() {
+	      activeModalKey = "";
+	      modalInputWrap.innerHTML = "";
+	      editModal.classList.add("hidden");
+	    }
+
+	    function getModalValue(input, config) {
+	      if (!input) return null;
+	      if (config.type === "number") {
+	        return Number(input.value || 0);
+	      }
+	      if (config.type === "boolean") {
+	        return input.value === "true";
+	      }
+	      if (config.type === "longtext") {
+	        return String(input.value || "").trim();
+	      }
+	      if (config.type === "prompt_array") {
+	        return parsePromptArrayInput(input.value);
+	      }
+	      if (config.type === "multiline-array") {
+	        return Array.isArray(modalState.items) ? modalState.items.slice() : [];
+	      }
+	      return input.value;
+	    }
+
+	    function renderTagEditor(items) {
+	      modalState.items = Array.isArray(items) ? items.slice() : [];
+	      const root = document.createElement("div");
+	      root.className = "tag-editor";
+
+	      const list = document.createElement("div");
+	      list.className = "tag-list";
+	      const normalizeItems = (arr) => {
+	        const unique = new Set();
+	        return (Array.isArray(arr) ? arr : [])
+	          .map((v) => String(v || "").trim())
+	          .filter(Boolean)
+	          .filter((v) => {
+	            const key = v.toLowerCase();
+	            if (unique.has(key)) return false;
+	            unique.add(key);
+	            return true;
+	          });
+	      };
+	      modalState.items = normalizeItems(modalState.items);
+	      const renderList = () => {
+	        list.innerHTML = "";
+	        modalState.items.forEach((value, idx) => {
+	          const pill = document.createElement("button");
+	          pill.type = "button";
+	          pill.className = "tag-pill";
+	          pill.dataset.idx = String(idx);
+	          pill.innerHTML = `<span>${value}</span><b class="tag-x">x</b>`;
+	          list.appendChild(pill);
+	        });
+	      };
+	      renderList();
+
+	      const addRow = document.createElement("div");
+	      addRow.className = "tag-add";
+	      const input = document.createElement("input");
+	      input.type = "text";
+	      input.id = "modalInput";
+	      input.placeholder = "type value, press Enter (supports paste comma/newline)";
+	      const addBtn = document.createElement("button");
+	      addBtn.type = "button";
+	      addBtn.textContent = "Add";
+	      addRow.appendChild(input);
+	      addRow.appendChild(addBtn);
+
+	      const hint = document.createElement("div");
+	      hint.className = "tag-hint";
+	      hint.textContent = "Click a bubble to remove. JSON editor remains available for bulk edits.";
+
+	      const addItems = (raw) => {
+	        const parts = String(raw || "")
+	          .split(/[\n,]+/g)
+	          .map((v) => v.trim())
+	          .filter(Boolean);
+	        if (!parts.length) return;
+	        const next = normalizeItems(modalState.items.concat(parts));
+	        modalState.items = next;
+	        renderList();
+	        input.focus();
+	      };
+
+	      addBtn.addEventListener("click", () => {
+	        const v = input.value;
+	        input.value = "";
+	        addItems(v);
+	      });
+	      input.addEventListener("keydown", (e) => {
+	        if (e.key === "Enter") {
+	          e.preventDefault();
+	          const v = input.value;
+	          input.value = "";
+	          addItems(v);
+	        } else if (e.key === "Backspace" && !input.value && modalState.items.length) {
+	          modalState.items = modalState.items.slice(0, -1);
+	          renderList();
+	        }
+	      });
+	      list.addEventListener("click", (e) => {
+	        const pill = e.target.closest(".tag-pill");
+	        if (!pill) return;
+	        const idx = Number(pill.dataset.idx || -1);
+	        if (idx < 0) return;
+	        modalState.items = modalState.items.filter((_, i) => i !== idx);
+	        renderList();
+	        input.focus();
+	      });
+
+	      root.appendChild(list);
+	      root.appendChild(addRow);
+	      root.appendChild(hint);
+	      return root;
+	    }
+
+	    function openChipEditor(key) {
+	      const config = chipConfigs[key];
+	      if (!config) return;
+	      let payload;
+	      try {
+	        payload = parsePayload();
+	      } catch (e) {
+	        appendLog(e.message);
+	        return;
+	      }
+
+	      activeModalKey = key;
+	      const currentValue = getPayloadValue(payload, config.path);
+	      modalTitle.textContent = `Edit ${config.label}`;
+	      modalLabel.textContent = config.label;
+	      modalInputWrap.innerHTML = "";
+
+	      let input;
+	      if (config.type === "select" || config.type === "boolean") {
+	        input = document.createElement("select");
+	        const options = config.type === "boolean"
+	          ? [
+	              { value: "true", label: "on" },
+	              { value: "false", label: "off" },
+	            ]
+	          : (config.options || []).map((option) => ({
+	              value: String(option.value ?? ""),
+	              label: option.label ?? String(option.value ?? ""),
+	            }));
+	        options.forEach((option) => {
+	          const el = document.createElement("option");
+	          el.value = option.value;
+	          el.textContent = option.label;
+	          if (String(currentValue ?? "") === option.value) {
+	            el.selected = true;
+	          }
+	          input.appendChild(el);
+	        });
+	      } else if (config.type === "multiline-array") {
+	        modalInputWrap.appendChild(renderTagEditor(Array.isArray(currentValue) ? currentValue : []));
+	        editModal.classList.remove("hidden");
+	        setTimeout(() => {
+	          const el = document.getElementById("modalInput");
+	          if (el) el.focus();
+	        }, 0);
+	        return;
+	      } else if (config.type === "prompt_array") {
+	        input = document.createElement("textarea");
+	        input.style.fontSize = "12px";
+	        input.style.lineHeight = "1.35";
+	        const arr = normalizePromptArray(currentValue);
+	        input.value = arr.length ? JSON.stringify(arr, null, 2) : "[]";
+	      } else if (config.type === "longtext") {
+	        input = document.createElement("textarea");
+	        input.value = String(currentValue || "");
+	      } else {
+	        input = document.createElement("input");
+	        input.type = config.type;
+	        input.value = currentValue ?? "";
+	        if (config.min !== undefined) input.min = String(config.min);
+	        if (config.max !== undefined) input.max = String(config.max);
+	      }
+
+	      input.id = "modalInput";
+	      modalInputWrap.appendChild(input);
+	      editModal.classList.remove("hidden");
+	      setTimeout(() => input.focus(), 0);
+	    }
+
+	    function applyModalValue() {
+	      if (!activeModalKey) return;
+	      const config = chipConfigs[activeModalKey];
+	      const input = document.getElementById("modalInput");
+	      if (!config || !input) return;
+	      let payload;
+	      try {
+	        payload = parsePayload();
+	      } catch (e) {
+	        appendLog(e.message);
+	        closeModal();
+	        return;
+	      }
+
+	      setPayloadValue(payload, config.path, getModalValue(input, config));
+	      payloadEl.value = JSON.stringify(payload, null, 2);
+	      renderPayloadSummary(payload);
+	      closeModal();
+	    }
+
+    function setStatus(state) {
+      statusText.className = "status";
+      if (state === "running") statusText.classList.add("running");
+      if (state === "complete") statusText.classList.add("complete");
+      if (state === "error") statusText.classList.add("error");
+      statusText.textContent = state.toUpperCase();
+    }
+
+    function setProgress(current, total, percent, label = stageLabel) {
+      const pct = Math.max(0, Math.min(100, Number(percent) || 0));
+      progressFill.style.width = `${pct}%`;
+      percentText.textContent = `${Math.round(pct)}%`;
+      progressText.textContent = `Stage: ${label}`;
+    }
+
+	    function setBusyUI(isBusy) {
+	      terminalProgress.classList.toggle("hidden", !isBusy);
+	      persistRunState();
+	    }
+
+	    function resetUIForRun(total = 0) {
+	      terminalBuffer = "";
+	      terminal.textContent = "";
+	      sessionStorage.removeItem(STORAGE_KEYS.terminal);
+	      requestedTotal = Number(total || 0);
+      completedFromLogs = 0;
+      pollTicks = 0;
+      enhanceDone = 0;
+      stageLabel = "initializing";
+      setProgress(0, requestedTotal, 0, stageLabel);
+      progressFill.classList.remove("complete");
+      setStatus("running");
+      setBusyUI(true);
+	      runFinished = false;
+	      runStarted = true;
+	      downloadTriggered = false;
+	      persistRunState();
+	    }
+
+	    function finishRun(ok) {
+	      btn.disabled = false;
+	      runFinished = true;
+	      if (ok) {
+	        progressFill.classList.add("complete");
+	        setStatus("complete");
+      } else {
+        setStatus("error");
+      }
+	      setTimeout(() => {
+	        if (!runStarted || runFinished) {
+	          setBusyUI(false);
+	        }
+	      }, 1800);
+	      persistRunState();
+	    }
+
+	    function closeStream() {
+	      if (streamReconnectTimer) {
+	        clearTimeout(streamReconnectTimer);
+	        streamReconnectTimer = null;
+	      }
+	      if (stream) {
+	        stream.close();
+	        stream = null;
+	      }
+	      streamMode = "";
+	    }
+
+    function parsePayload() {
+      try {
+        return JSON.parse(payloadEl.value);
+      } catch (e) {
+        throw new Error("Invalid JSON payload.");
+      }
+    }
+
+	    function syncSummaryFromJson() {
+	      const payload = applyPayloadRules(parsePayload());
+	      payloadEl.value = JSON.stringify(payload, null, 2);
+	      renderPayloadSummary(payload);
+	      return payload;
+	    }
+
+	    function cycleModelPreset(payload) {
+	      const options = (chipConfigs.model_id && chipConfigs.model_id.options) || [];
+	      if (!options.length) return payload;
+	      const current = String(payload.model_id ?? "");
+	      const idx = options.findIndex((opt) => String(opt.value ?? "") === current);
+	      const nextIdx = (idx + 1 + options.length) % options.length;
+	      payload.model_id = String(options[nextIdx].value ?? "");
+	      return payload;
+	    }
+
+	    function connectGenerateStream(payload) {
+	      closeStream();
+	      const endpoint = `/api/v1/generate/stream?payload=${encodeURIComponent(JSON.stringify(payload))}`;
+	      stream = new EventSource(`${API_BASE}${endpoint}`);
+	      streamMode = "generate";
+	      appendLog(`generate stream connected: /api/v1/generate/stream`);
+
+	      stream.addEventListener("log", (evt) => {
+	        try { handleEvent(JSON.parse(evt.data)); } catch (_) {}
+      });
+      stream.addEventListener("progress", (evt) => {
+        try { handleEvent(JSON.parse(evt.data)); } catch (_) {}
+      });
+	      stream.addEventListener("complete", (evt) => {
+	        try { handleEvent(JSON.parse(evt.data)); } catch (_) {}
+	      });
+	      stream.addEventListener("error", (evt) => {
+	        try { handleEvent(JSON.parse(evt.data)); } catch (_) {}
+	      });
+	      stream.addEventListener("ping", () => {});
+
+	      stream.onerror = () => {
+	        if (runStarted && !runFinished) {
+	          appendLog("generate stream disconnected. switching to observer stream...");
+	          setBusyUI(true);
+	          setStatus("running");
+	          connectObserverStream();
+	          return;
+	        }
+	        closeStream();
+	      };
+	    }
+
+	    function connectObserverStream() {
+	      closeStream();
+	      const endpoint = "/api/logs/stream";
+	      stream = new EventSource(`${API_BASE}${endpoint}`);
+	      streamMode = "observer";
+	      appendLog("observer stream connected: /api/logs/stream");
+
+	      stream.addEventListener("log", (evt) => {
+	        try { handleEvent(JSON.parse(evt.data)); } catch (_) {}
+	      });
+	      stream.addEventListener("progress", (evt) => {
+	        try { handleEvent(JSON.parse(evt.data)); } catch (_) {}
+	      });
+	      stream.addEventListener("complete", (evt) => {
+	        try { handleEvent(JSON.parse(evt.data)); } catch (_) {}
+	      });
+	      stream.addEventListener("error", (evt) => {
+	        try { handleEvent(JSON.parse(evt.data)); } catch (_) {}
+	      });
+	      stream.addEventListener("ping", () => {});
+
+	      stream.onerror = () => {
+	        if (runStarted && !runFinished) {
+	          appendLog("observer stream disconnected. retrying...");
+	          closeStream();
+	          streamReconnectTimer = setTimeout(() => {
+	            if (!runFinished) {
+	              connectObserverStream();
+	            }
+	          }, 1000);
+	          return;
+	        }
+	        closeStream();
+	      };
+	    }
+
+    async function autoDownloadZip(zipPath) {
+      if (!zipPath || typeof zipPath !== "string") return;
+      if (downloadTriggered) return;
+      downloadTriggered = true;
+      const hasQuery = zipPath.includes("?");
+      const url = `${API_BASE}${zipPath}${hasQuery ? "&" : "?"}cleanup=1&_ts=${Date.now()}`;
+      appendLog(`auto downloading zip: ${url}`);
+
+      // Use hidden iframe to trigger browser-native download flow without navigating/resetting FE page.
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.src = url;
+      document.body.appendChild(iframe);
+      setTimeout(() => {
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      }, 15000);
+      appendLog("download trigger sent.");
+    }
+
+    async function resolveApiBase() {
+      for (const base of API_CANDIDATES) {
+        try {
+          const resp = await fetch(`${base}/health`, { method: "GET" });
+          if (resp.ok) {
+            API_BASE = base;
+	            if (runStarted) {
+	              appendLog(`backend detected: ${base}`);
+	            }
+	            return true;
+	          }
+        } catch (_) {}
+      }
+      return false;
+    }
+
+	    function handleEvent(msg) {
+	      if (!msg || typeof msg !== "object") return;
+
+	      if (msg.type === "log") {
+	        setBusyUI(true);
+	        appendLog(msg.message || "(empty log)");
+	        updateProgressFromLog(msg.message || "");
+	        return;
+	      }
+
+	      if (msg.type === "progress") {
+        const current = Number(msg.current || 0);
+        const total = Number(msg.total || 0);
+        const percent = Number(msg.percent || 0);
+	        stageLabel = msg.stage || stageLabel;
+	        setStatus("running");
+	        setBusyUI(true);
+	        setProgress(current, total || requestedTotal, percent, stageLabel);
+	        return;
+	      }
+
+	      if (msg.type === "complete") {
+	        const data = msg.data || {};
+	        const current = Number(msg.current || msg.total || data.total_image || 0);
+	        const total = Number(msg.total || data.total_image || current);
+	        stageLabel = "completed";
+	        runFinished = true;
+	        setStatus("complete");
+	        setProgress(current, total, 100, stageLabel);
+	        if (msg.message) {
+	          appendLog(msg.message);
+	        }
+	        if (data.zip_file || msg.zip_file) {
+	          void autoDownloadZip(data.zip_file || msg.zip_file);
+	        }
+	        finishRun(true);
+	        return;
+	      }
+
+	      if (msg.type === "error") {
+	        appendLog(msg.message || "generation failed");
+	        finishRun(false);
+	      }
+	    }
+
+    function updateProgressFromLog(line) {
+      const text = (line || "").toLowerCase();
+
+      if (text.includes("generating prompt variants")) {
+        stageLabel = "prompt_variants";
+        setProgress(0, requestedTotal, 5, stageLabel);
+        return;
+      }
+
+      if (text.includes("sending request to leonardo ai")) {
+        stageLabel = "requesting_ai";
+        setProgress(0, requestedTotal, 12, stageLabel);
+        return;
+      }
+
+      if (text.includes("request success endpoint=/generations")) {
+        stageLabel = "generation_requested";
+        setProgress(0, requestedTotal, 18, stageLabel);
+        return;
+      }
+
+      if (text.includes("status=pending waiting=") || text.includes("poll")) {
+        pollTicks += 1;
+        stageLabel = "polling_generation";
+        const pct = Math.min(45, 18 + pollTicks * 2);
+        setProgress(completedFromLogs, requestedTotal, pct, stageLabel);
+      }
+
+      if (text.includes("prompt done:") || text.includes("poll complete assets=")) {
+        stageLabel = "images_ready";
+        const pct = requestedTotal > 0
+          ? Math.max(50, Math.round((completedFromLogs / requestedTotal) * 100))
+          : 50;
+        setProgress(completedFromLogs, requestedTotal, pct, stageLabel);
+      }
+
+      if (text.includes("enhancing images") || text.includes("enhance")) {
+        stageLabel = "enhancing";
+        const pct = requestedTotal > 0
+          ? Math.max(55, Math.min(80, 55 + Math.round((enhanceDone / requestedTotal) * 25)))
+          : 55;
+        setProgress(completedFromLogs, requestedTotal, pct, stageLabel);
+      }
+
+      const enhanceDoneMatch = /index=\d+\s+done/i.exec(line || "");
+      if (enhanceDoneMatch && requestedTotal > 0) {
+        enhanceDone += 1;
+        stageLabel = "enhancing";
+        const pct = Math.max(55, Math.min(80, 55 + Math.round((enhanceDone / requestedTotal) * 25)));
+        setProgress(completedFromLogs, requestedTotal, pct, stageLabel);
+        return;
+      }
+
+      const batchMatch = /image batch completed:\s*(\d+)\/(\d+)/i.exec(line || "");
+      if (batchMatch) {
+        const current = Number(batchMatch[1] || 0);
+        const total = Number(batchMatch[2] || requestedTotal || 0);
+        const percent = total > 0 ? Math.max(50, (current / total) * 80) : 50;
+        completedFromLogs = Math.max(completedFromLogs, current);
+        stageLabel = "generating_images";
+        setStatus("running");
+        setProgress(current, total, percent, stageLabel);
+        return;
+      }
+
+      if (text.includes("saving files")) {
+        stageLabel = "saving_files";
+        setProgress(completedFromLogs, requestedTotal, 82, stageLabel);
+        return;
+      }
+
+      const saveMatch = /saved file=/i.exec(line || "");
+      if (saveMatch && requestedTotal > 0) {
+        completedFromLogs += 1;
+        const current = Math.min(completedFromLogs, requestedTotal);
+        const percent = 82 + Math.round((current / requestedTotal) * 15);
+        stageLabel = "saving_files";
+        setStatus("running");
+        setProgress(current, requestedTotal, percent, stageLabel);
+        return;
+      }
+
+      if (text.includes("compressing zip")) {
+        stageLabel = "compressing_zip";
+        setProgress(completedFromLogs, requestedTotal, 98, stageLabel);
+      }
+    }
+
+	    async function ensureBackend() {
+	      if (apiInitPromise) {
+	        return apiInitPromise;
+	      }
+	      apiInitPromise = (async () => {
+	        const ok = await resolveApiBase();
+	        if (!ok) {
+	          appendLog("cannot detect backend. ensure Go server is running on http://localhost:8080");
+	          return false;
+	        }
+	        return true;
+	      })();
+	      return apiInitPromise;
+	    }
+
+	    async function handleGenerateClick() {
+	      let payload;
+	      try {
+	        payload = applyPayloadRules(parsePayload());
+	      } catch (e) {
+	        appendLog(e.message);
+	        return;
+      }
+	      if (!payload.auto_prompt && (!Array.isArray(payload.prompt) || payload.prompt.length === 0)) {
+	        appendLog("prompt array is empty. add at least 1 prompt or enable auto prompt.");
+	        return;
+	      }
+	      payload.prompt = normalizePromptArray(payload.prompt);
+	      payloadEl.value = JSON.stringify(payload, null, 2);
+	      renderPayloadSummary(payload);
+
+	      closeStream();
+	      btn.disabled = true;
+	      resetUIForRun(payload.generate);
+
+	      appendLog("initializing pipeline...");
+	      apiInitPromise = null;
+	      const ok = await ensureBackend();
+	      if (!ok) {
+	        finishRun(false);
+	        return;
+	      }
+	      connectGenerateStream(payload);
+	    }
+
+	    btn.addEventListener("click", handleGenerateClick);
+	    importPromptsBtn.addEventListener("click", () => {
+	      openChipEditor("prompt");
+	    });
+	    shufflePromptsBtn.addEventListener("click", () => {
+	      let payload;
+	      try {
+	        payload = parsePayload();
+	      } catch (e) {
+	        appendLog(e.message);
+	        return;
+	      }
+	      const prompts = normalizePromptArray(payload.prompt);
+	      if (prompts.length < 2) {
+	        appendLog("need at least 2 prompts to shuffle.");
+	        return;
+	      }
+	      payload.prompt = shufflePromptArray(prompts);
+	      applyPayloadRules(payload);
+	      payloadEl.value = JSON.stringify(payload, null, 2);
+	      renderPayloadSummary(payload);
+	      appendLog(`prompt array shuffled (${payload.prompt.length} items).`);
+	    });
+	    debugToggleBtn.addEventListener("click", () => {
+	      let payload;
+	      try {
+	        payload = parsePayload();
+	      } catch (e) {
+	        appendLog(e.message);
+	        return;
+	      }
+	      payload.debug = !payload.debug;
+	      applyPayloadRules(payload);
+	      payloadEl.value = JSON.stringify(payload, null, 2);
+	      renderPayloadSummary(payload);
+	    });
+	    payloadEl.addEventListener("blur", () => {
+	      try {
+	        syncSummaryFromJson();
+	      } catch (_) {}
+	    });
+	    payloadSummary.addEventListener("click", (event) => {
+	      const chip = event.target.closest("[data-chip]");
+	      if (!chip) return;
+	      const key = chip.dataset.chip;
+	      if (key === "model_id") {
+	        let payload;
+	        try {
+	          payload = parsePayload();
+	        } catch (e) {
+	          appendLog(e.message);
+	          return;
+	        }
+	        cycleModelPreset(payload);
+	        applyPayloadRules(payload);
+	        payloadEl.value = JSON.stringify(payload, null, 2);
+	        renderPayloadSummary(payload);
+	        return;
+	      }
+	      openChipEditor(key);
+	    });
+	    payloadCard.querySelectorAll("[data-resize]").forEach((handle) => {
+	      handle.dataset.panel = "payload";
+	    });
+	    document.querySelectorAll("[data-resize][data-panel]").forEach((handle) => {
+	      handle.addEventListener("mousedown", (event) => startResize(event, handle.dataset.panel, handle.dataset.resize));
+	    });
+	    modalCloseBtn.addEventListener("click", closeModal);
+	    modalCancelBtn.addEventListener("click", closeModal);
+	    modalSaveBtn.addEventListener("click", applyModalValue);
+	    editModal.addEventListener("click", (event) => {
+	      if (event.target === editModal) {
+	        closeModal();
+	      }
+	    });
+	    document.addEventListener("keydown", (event) => {
+	      if (editModal.classList.contains("hidden")) return;
+	      if (event.key === "Escape") {
+	        closeModal();
+	      } else if (event.key === "Enter" && event.target?.id === "modalInput") {
+	        applyModalValue();
+	      }
+	    });
+	    window.addEventListener("mousemove", onResizeMove);
+	    window.addEventListener("mouseup", stopResize);
+	    window.addEventListener("mouseleave", stopResize);
+	    window.addEventListener("resize", () => {
+	      const current = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--payload-height"), 10);
+	      if (!Number.isNaN(current)) {
+	        applyPayloadSize(current);
+	      }
+	      const term = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--terminal-row"), 10);
+	      if (!Number.isNaN(term)) {
+	        applyTerminalRow(term);
+	      } else {
+	        applyTerminalRow(terminalCard.getBoundingClientRect().height);
+	      }
+	    });
+
+	    setStatus("idle");
+	    setProgress(0, 0, 0);
+	    setBusyUI(false);
+	    applyPayloadSize(Math.round((window.innerHeight || 900) * 0.21));
+	    applyTerminalRow(terminalCard.getBoundingClientRect().height);
+	    try {
+	      syncSummaryFromJson();
+	    } catch (_) {}
+	    restoreTerminalState();
+	  </script>
+</body>
+</html>
